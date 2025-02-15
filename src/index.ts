@@ -10,7 +10,7 @@ import { Langfuse, ChatPromptClient, TextPromptClient } from "langfuse";
 import { extractVariables } from "./utils.js";
 
 // Requires Environment Variables
-const langfuse = new Langfuse({});
+const langfuse = new Langfuse();
 
 // Create MCP server instance with a "prompts" capability.
 const server = new McpServer(
@@ -24,46 +24,6 @@ const server = new McpServer(
     },
   }
 );
-
-const PROMPTS = {
-  "test-1": {
-    name: "test-1",
-    description: "A test prompt",
-    arguments: [],
-  },
-  "movie-critic-chat-ai": {
-    name: "movie-critic-chat-ai",
-    description: "A chatbot that can answer questions about movies",
-    arguments: [],
-  },
-  "git-commit": {
-    name: "git-commit",
-    description: "Generate a Git commit message",
-    arguments: [
-      {
-        name: "changes",
-        description: "Git diff or description of changes",
-        required: true,
-      },
-    ],
-  },
-  "explain-code": {
-    name: "explain-code",
-    description: "Explain how code works",
-    arguments: [
-      {
-        name: "code",
-        description: "Code to explain",
-        required: true,
-      },
-      {
-        name: "language",
-        description: "Programming language",
-        required: false,
-      },
-    ],
-  },
-};
 
 // List available prompts
 server.server.setRequestHandler(ListPromptsRequestSchema, async (request) => {
