@@ -13,3 +13,11 @@ npm run build
 # test in mcp inspector
 npx @modelcontextprotocol/inspector node ./build/index.js
 ```
+
+## Todo
+
+- [x] Get prompt
+- [] List "production" prompts
+- [] Insert variables into prompts
+- [] Filter prompts by tag on list
+- [] Set label that is to be used globally
