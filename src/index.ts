@@ -66,32 +66,22 @@ const PROMPTS = {
 };
 
 // List available prompts
-server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
-  // Todo: parallelize fetching multiple pages beyond first page
+server.server.setRequestHandler(ListPromptsRequestSchema, async (request) => {
   try {
-    const fetchAllPrompts = async () => {
-      const allPrompts = [];
-      let page = 1;
-      while (true) {
-        const res = await langfuse.api.promptsList({
-          limit: 100,
-          page,
-          label: "production",
-        });
-        allPrompts.push(...res.data);
-        if (res.meta.totalPages > page) {
-          page++;
-        } else {
-          break;
-        }
-      }
-      return allPrompts;
-    };
+    const cursor = request.params?.cursor;
+    const page = cursor ? Number(cursor) : 1;
+    if (cursor !== undefined && isNaN(page)) {
+      throw new Error("Cursor must be a valid number");
+    }
 
-    const prompts = await fetchAllPrompts();
+    const res = await langfuse.api.promptsList({
+      limit: 100,
+      page,
+      label: "production",
+    });
 
     const resPrompts: ListPromptsResult["prompts"] = await Promise.all(
-      prompts.map(async (i) => {
+      res.data.map(async (i) => {
         const prompt = await langfuse.getPrompt(i.name, undefined, {
           cacheTtlSeconds: 0,
         });
@@ -108,6 +98,8 @@ server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
 
     return {
       prompts: resPrompts,
+      nextCursor:
+        res.meta.totalPages > page ? (page + 1).toString() : undefined,
     };
   } catch (error) {
     console.error("Error fetching prompts:", error);
