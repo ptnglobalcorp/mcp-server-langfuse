@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   ListPromptsRequestSchema,
+  ListPromptsResult,
   GetPromptRequestSchema,
   GetPromptResult,
 } from "@modelcontextprotocol/sdk/types.js";
@@ -65,9 +66,37 @@ const PROMPTS = {
 
 // List available prompts
 server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
-  return {
-    prompts: Object.values(PROMPTS),
-  };
+  // Todo: parallelize fetching multiple pages beyond first page
+  try {
+    const fetchAllPrompts = async () => {
+      const allPrompts = [];
+      let page = 1;
+      while (true) {
+        const res = await langfuse.api.promptsList({ limit: 100, page });
+        allPrompts.push(...res.data);
+        if (res.meta.totalPages > page) {
+          page++;
+        } else {
+          break;
+        }
+      }
+      return allPrompts;
+    };
+
+    const prompts = await fetchAllPrompts();
+
+    const resPrompts: ListPromptsResult["prompts"] = prompts.map((i) => ({
+      name: i.name,
+    }));
+
+    return {
+      // prompts: Object.values(PROMPTS), // static examples
+      prompts: resPrompts,
+    };
+  } catch (error) {
+    console.error("Error fetching prompts:", error);
+    throw new Error("Failed to fetch prompts");
+  }
 });
 
 // Implement getPrompt handler (ignoring the list endpoint for now)
