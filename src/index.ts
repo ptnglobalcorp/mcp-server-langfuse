@@ -7,6 +7,7 @@ import {
   GetPromptResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Langfuse, ChatPromptClient, TextPromptClient } from "langfuse";
+import { extractVariables } from "./utils.js";
 
 // Requires Environment Variables
 const langfuse = new Langfuse({});
@@ -72,7 +73,11 @@ server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
       const allPrompts = [];
       let page = 1;
       while (true) {
-        const res = await langfuse.api.promptsList({ limit: 100, page });
+        const res = await langfuse.api.promptsList({
+          limit: 100,
+          page,
+          label: "production",
+        });
         allPrompts.push(...res.data);
         if (res.meta.totalPages > page) {
           page++;
@@ -85,12 +90,23 @@ server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
 
     const prompts = await fetchAllPrompts();
 
-    const resPrompts: ListPromptsResult["prompts"] = prompts.map((i) => ({
-      name: i.name,
-    }));
+    const resPrompts: ListPromptsResult["prompts"] = await Promise.all(
+      prompts.map(async (i) => {
+        const prompt = await langfuse.getPrompt(i.name, undefined, {
+          cacheTtlSeconds: 0,
+        });
+        const variables = extractVariables(JSON.stringify(prompt.prompt));
+        return {
+          name: i.name,
+          arguments: variables.map((v) => ({
+            name: v,
+            required: false,
+          })),
+        };
+      })
+    );
 
     return {
-      // prompts: Object.values(PROMPTS), // static examples
       prompts: resPrompts,
     };
   } catch (error) {
@@ -117,13 +133,13 @@ server.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
       if (prompt.type !== "chat") {
         throw new Error(`Prompt '${promptName}' is not a chat prompt`);
       }
-      compiledChatPrompt = prompt.compile();
+      compiledChatPrompt = prompt.compile(args);
     } catch (error) {
       // fallback to text prompt type
       const prompt = await langfuse.getPrompt(promptName, undefined, {
         type: "text",
       });
-      compiledTextPrompt = prompt.compile();
+      compiledTextPrompt = prompt.compile(args);
     }
 
     if (compiledChatPrompt) {

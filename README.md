@@ -21,3 +21,8 @@ npx @modelcontextprotocol/inspector node ./build/index.js
 - [] Insert variables into prompts
 - [] Filter prompts by tag on list
 - [] Set label that is to be used globally
+
+## Potential Improvements to Langfuse in order to better support MCP
+
+- [] Add support for prompt variable descriptions
+- [] Return available variables on the /prompts endpoint to reduce the number of requests
